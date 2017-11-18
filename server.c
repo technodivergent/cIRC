@@ -7,27 +7,13 @@
 #include <netdb.h>
 #include <sys/socket.h>
 
-void setup() {
-    
-}
+int verbose;
+int listenfd, conn, clientlen;
+struct sockaddr_in client;
 
-int main(int argc, char** argv) {
-    int verbose = 1;
-    int b_ReuseAddr = 1;
+void start(char* port) {
+    int b_ReuseAddr = 1; // Specify to reuse socket address
     int b_bindSuccess, b_listenSuccess;
-    int listenfd, conn, clientlen;
-    struct sockaddr_in client;
-    
-    char client_request[200];
-    char server_reply[100];
-    const char* hello = "hello\r\n";
-    
-    if(argc <= 1){
-        printf("Usage: %s <port>\n", argv[0]);
-        exit(EXIT_FAILURE);
-    }
-      
-    // SETUP THE CONNECTION
     
     // create the socket
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -44,15 +30,15 @@ int main(int argc, char** argv) {
      //Bind
     client.sin_family = AF_INET; /* Internet address family */
     client.sin_addr.s_addr = htonl(INADDR_ANY); /* Any incoming interface */
-    client.sin_port = htons(atoi(argv[1])); /* Local port */
+    client.sin_port = htons(atoi(port)); /* Local port */
     b_bindSuccess = bind(listenfd, (struct sockaddr *) &client, sizeof(client));
     if(verbose) {
         if(b_bindSuccess < 0)
         {
             perror("[P] bind failed!\n");
-            return 1;
+            exit(EXIT_FAILURE);
         } else {
-            printf("[P] bind success!\n");
+            printf("[P] bind success\n");
         }
     }
     
@@ -61,10 +47,31 @@ int main(int argc, char** argv) {
     if(verbose) {
         if(b_listenSuccess < 0) {
             perror("[P] listen failed!\n");
+            exit(EXIT_FAILURE);
         } else {
-            printf("[P] listen success!\n");
+            printf("[P] listen success\n");
         }
     }
+}
+
+int main(int argc, char** argv) {
+    char* port = argv[1];
+    char client_request[200];
+    char server_reply[100];
+    const char* hello = "hello\r\n";
+    
+    if(argc <= 1){
+        printf("Usage: %s <port> [-v]\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+    
+    if(argv[2] && strcmp(argv[2], "-v") == 0)
+        verbose = 1;
+    else
+        verbose = 0;
+    
+    // SETUP THE CONNECTION
+    start(port);
     
     // accepting incoming connections
     while (1) {
@@ -80,14 +87,15 @@ int main(int argc, char** argv) {
             printf("[P] Connection accepted\n");
         }
         
+        // Child handles requests/replies
         if(fork() == 0) {
             close(listenfd); // close parent listen socket
+            
+            printf("[C] Waiting for incoming request...\n");
             
             // Clean variables from previous requests/replies
             memset(client_request, '\0', sizeof(client_request));
             memset(server_reply, '\0', sizeof(server_reply));
-            
-            printf("[C] Waiting for incoming request...\n");
             
             // Receive a request
             if(recv(conn, client_request, 200, 0) < 0) {
