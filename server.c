@@ -80,7 +80,10 @@ void create_connection(char* port) {
         
         printf("adding %i to linked list\n", *conn);
         sprintf(nick, "Guest%i", client_port);
+        
+        pthread_mutex_lock(&userlist_mutex);
         userlist = add_user(userlist, nick, client_addr, client_port, conn);
+        pthread_mutex_unlock(&userlist_mutex);
         
         pthread_create(&tid, NULL, thread, conn);
         
@@ -98,7 +101,7 @@ void create_connection(char* port) {
 int main(int argc, char** argv) {
     char* port = argv[1];
     userlist = userlist_init();
-    // pthread_mutex_init(&userlist_mutex, NULL);
+    pthread_mutex_init(&userlist_mutex, NULL);
             
     if(argc <= 1){
         printf("Usage: %s <port> [-v]\n", argv[0]);
@@ -160,7 +163,8 @@ void request_handler(int conn) {
         if(strstr(client_request, "NICK"))
         {
             cmd_arg = &client_request[5];
-            user = get_by_id(userlist, client_port);
+            user = get_by_id(userlist, conn);
+            cmd_arg[strlen(cmd_arg) - 1] = 0;    // remove trailing newline
             
             // If the user enters the command with no args, display current neck
             // otherwise, change the user nick to specified arg
@@ -169,12 +173,18 @@ void request_handler(int conn) {
                 strcat(server_reply, user->nick);
                 strcat(server_reply, "\n");
             } else {
+                pthread_mutex_lock(&userlist_mutex);
+                    change_nick(user, cmd_arg);
+                pthread_mutex_unlock(&userlist_mutex);
+                
+                
                 strcpy(server_reply, "> changed nick to: ");
                 strcat(server_reply, cmd_arg);
-                cmd_arg[strlen(cmd_arg) -1] = 0;    // remove trailing newline
+                strcat(server_reply, "\n");
+                
                 printf("reply to %s:%i: %s", client_addr, client_port, server_reply);
-                change_nick(user, cmd_arg);
             }
+            user = get_by_id(userlist, client_port);
         }
         
         if(strstr(client_request, "LIST"))

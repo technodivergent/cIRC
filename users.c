@@ -149,13 +149,13 @@ int userlist_length(Node* userlist) {
     }
 }
 
-User* get_by_id(Node* userlist, int id) {
+User* get_by_id(Node* userlist, int conn) {
     int i;
     int length = userlist_length(userlist);
     Node* n = userlist;
     User* user = n->data;
     for(i = 0; i < length; i++) {
-        if(user->id == id) {
+        if(user->conn == conn) {
             return user;
         }
         n = n->next;
