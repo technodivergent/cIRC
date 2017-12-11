@@ -154,8 +154,8 @@ void request_handler(int conn) {
         if (strstr(client_request, "MESG")) 
         {
             cmd_arg = &client_request[5];
-            strcpy(server_reply, "> ");
-            strcat(server_reply, cmd_arg);
+//            strcpy(server_reply, "> ");
+//            strcat(server_reply, cmd_arg);
             printf("reply to %s:%i: %s", client_addr, client_port, server_reply);
             broadcast_message(cmd_arg);
         } 
@@ -215,4 +215,21 @@ void request_handler(int conn) {
 
 void broadcast_message(char* msg) {
     printf("Broadcasting message: %s", msg);
+    /* Pseudocode
+     * foreach(conn in list) {
+     *  send(user->conn, msg, strlen(msg), 0);
+     * }
+     */
+    int i;
+    Node* n = userlist;
+    User* user = n->data;
+    int length = userlist_length(userlist);
+    
+    strcat(msg, "\n");
+    
+    for(i = 0; i < length; i++) {
+        send(user->conn, msg, strlen(msg), 0);
+        n = n->next;
+        user = n->data;
+    }
 }
