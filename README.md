@@ -6,6 +6,7 @@ Run `make` to build
 
 ## Run:
 Run `./server <port> [-v]`
+
 | Option | Description |
 |  ---   |     ---     |
 | <port> | Typical IRC port is 6667 |
