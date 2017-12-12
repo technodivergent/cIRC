@@ -9,8 +9,8 @@ Run `./server <port> [-v]`
 
 | Option | Description |
 |  ---   |     ---     |
-| <port> | Typical IRC port is 6667 |
-| -v     | Verbose mode enables socket connection debugging info |
+| `<port>` | Typical IRC port is 6667 |
+| `-v`     | Verbose mode enables socket connection debugging info |
 
 ## Usage:
 To use cIRC, open another terminal and connect via `telnet localhost <port>`
