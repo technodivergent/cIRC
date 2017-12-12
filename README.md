@@ -14,6 +14,7 @@ To use cIRC, open another terminal and connect via `telnet localhost <port>`
 
 ## Commands:
 The following commands are available:
+
 ...`HELO`		A test command to verify connection to the server
 ...`LIST`		A list of currently connected users
 ...`NICK`		Display your current nickname
