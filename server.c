@@ -12,7 +12,7 @@
 
 void* thread(void* argp);
 void request_handler(int conn);
-void broadcast_message(char* msg);
+void broadcast_message(char* nick, char* msg);
 
 int verbose;
 
@@ -79,10 +79,10 @@ void create_connection(char* port) {
         client_port = (int) ntohs(client.sin_port);
         
         printf("adding %i to linked list\n", *conn);
-        sprintf(nick, "Guest%i", client_port);
+        snprintf(nick, sizeof(nick), "Guest%i", client_port);
         
         pthread_mutex_lock(&userlist_mutex);
-        userlist = add_user(userlist, nick, client_addr, client_port, conn);
+            userlist = add_user(userlist, nick, client_addr, client_port, conn);
         pthread_mutex_unlock(&userlist_mutex);
         
         pthread_create(&tid, NULL, thread, conn);
@@ -138,12 +138,16 @@ void request_handler(int conn) {
     char* cmd_arg;
     User* user = NULL;
     
+    
     // Send a welcome message
     send(conn, welcome, strlen(welcome), 0);
     
     while(recv(conn, client_request, 200, 0) != 0) {
         // Do the things
         printf("request from %s:%i: %s", client_addr, client_port, client_request);
+        
+        user = get_by_id(userlist, conn);
+        strncpy(nick, user->nick, sizeof(nick));
         
         if(strcmp("HELO\r\n", client_request) == 0) 
         {
@@ -154,32 +158,34 @@ void request_handler(int conn) {
         if (strstr(client_request, "MESG")) 
         {
             cmd_arg = &client_request[5];
-//            strcpy(server_reply, "> ");
-//            strcat(server_reply, cmd_arg);
+            strcpy(server_reply, "\n");
             printf("reply to %s:%i: %s", client_addr, client_port, server_reply);
-            broadcast_message(cmd_arg);
+            printf("Nick: %s\n", nick);
+            broadcast_message(user->nick, cmd_arg);
         } 
         
         if(strstr(client_request, "NICK"))
         {
             cmd_arg = &client_request[5];
             user = get_by_id(userlist, conn);
-            cmd_arg[strlen(cmd_arg) - 1] = 0;    // remove trailing newline
+            cmd_arg[strlen(cmd_arg) - 1] = 0;    // remove trailing \n
+            cmd_arg[strlen(cmd_arg) - 1] = 0;    // remove trailing \r
             
             // If the user enters the command with no args, display current neck
             // otherwise, change the user nick to specified arg
             if(client_request[4] == '\r') {
                 strcpy(server_reply, "> current nick: ");
-                strcat(server_reply, user->nick);
+                strcat(server_reply, nick);
                 strcat(server_reply, "\n");
             } else {
                 pthread_mutex_lock(&userlist_mutex);
                     change_nick(user, cmd_arg);
                 pthread_mutex_unlock(&userlist_mutex);
                 
+                strncpy(nick, user->nick, sizeof(nick));
                 
                 strcpy(server_reply, "> changed nick to: ");
-                strcat(server_reply, cmd_arg);
+                strcat(server_reply, nick);
                 strcat(server_reply, "\n");
                 
                 printf("reply to %s:%i: %s", client_addr, client_port, server_reply);
@@ -213,23 +219,26 @@ void request_handler(int conn) {
     }
 }
 
-void broadcast_message(char* msg) {
-    printf("Broadcasting message: %s", msg);
-    /* Pseudocode
-     * foreach(conn in list) {
-     *  send(user->conn, msg, strlen(msg), 0);
-     * }
-     */
+void broadcast_message(char* name, char* msg) {
+    
     int i;
     Node* n = userlist;
     User* user = n->data;
     int length = userlist_length(userlist);
     
-    strcat(msg, "\n");
+    char* tmp;
+    tmp = malloc(strlen(msg) + strlen(name) + 1);
+    
+    strcpy(tmp, name);
+    strcat(tmp, ": ");
+    strcat(tmp, msg);
+    
+    msg = tmp;
     
     for(i = 0; i < length; i++) {
         send(user->conn, msg, strlen(msg), 0);
         n = n->next;
         user = n->data;
     }
+    printf("Message sent:\n\t%s\n", msg);
 }
