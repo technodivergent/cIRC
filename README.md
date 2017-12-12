@@ -6,10 +6,10 @@ Run `make` to build
 
 ## Run:
 Run `./server <port> [-v]`
-
-<port> 		Typical IRC port is 6667
-  
--v		Verbose mode enables socket connection debugging info
+| Option | Description |
+|  ---   |     ---     |
+| <port> | Typical IRC port is 6667 |
+| -v     | Verbose mode enables socket connection debugging info |
 
 ## Usage:
 To use cIRC, open another terminal and connect via `telnet localhost <port>`
